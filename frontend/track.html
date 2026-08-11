@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Track Complaint – NagrikSnap</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+      margin-top: 24px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: #e2e8f0;
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -26px;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px #e2e8f0;
+    }
+    .timeline-item.active::before {
+      background: var(--primary);
+      box-shadow: 0 0 0 2px var(--primary);
+    }
+    .timeline-item.done::before {
+      background: #10b981;
+      box-shadow: 0 0 0 2px #10b981;
+    }
+    .complaint-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-top: 20px;
+      box-shadow: 0 8px 30px rgba(14,165,233,0.12);
+    }
+    .complaint-photo {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 12px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">📸</span>
+        <span class="logo-text">Nagrik<span>Snap</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="nav_home">Home</a>
+        <a href="report.html" data-i18n="nav_report">Report Issue</a>
+        <a href="track.html" class="active" data-i18n="nav_track">Track Complaint</a>
+        <a href="login.html" data-i18n="nav_login">Login</a>
+        <a href="admin.html" class="admin-link" data-i18n="nav_admin">Admin</a>
+      </div>
+<button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="container">
+      <h1>🔍 <span data-i18n="track_title">Track Your Complaint</span></h1>
+      <p><span data-i18n="track_sub">Enter your Tracking ID or mobile number</span></p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="form-card">
+      <div class="form-group">
+        <label data-i18n="track_label">Tracking ID or Mobile Number</label>
+        <input type="text" id="searchInput" placeholder="e.g. NS123456789 or 9876543210" data-i18n-placeholder="track_ph" />
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="searchComplaint()">
+        <i class="fas fa-search"></i> <span data-i18n="track_now">Track Now</span>
+      </button>
+
+      <div id="resultArea" style="display:none; margin-top:30px;"></div>
+      <div id="notFound" style="display:none; text-align:center; margin-top:30px; color:#64748b;">
+        <i class="fas fa-search" style="font-size:3rem; margin-bottom:12px; opacity:0.5;"></i>
+        <p><span data-i18n="no_found_full">No complaint found. Please check the ID or number.</span></p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:12px 0;">
+          <a href="report.html">Report</a>
+          <a href="track.html">Track</a>
+          <a href="reviews.html"><strong>Reviews</strong></a>
+          <a href="login.html">Login</a>
+        </div>
+      <div class="footer-bottom">
+        <p>© 2026 NagrikSnap • Snap it. Send it. Solved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+<script src="js/chatbotAi.js"></script>
+  <script>
+    function searchComplaint() {
+      const query = document.getElementById('searchInput').value.trim().toUpperCase();
+      if (!query) return;
+
+      const complaints = JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
+      const found = complaints.find(c => 
+        c.id === query || c.phone === query || c.phone === query.replace(/\D/g, '')
+      );
+
+      const resultArea = document.getElementById('resultArea');
+      const notFound = document.getElementById('notFound');
+
+      if (!found) {
+        resultArea.style.display = 'none';
+        notFound.style.display = 'block';
+        return;
+      }
+
+      notFound.style.display = 'none';
+      resultArea.style.display = 'block';
+
+      const statusClass = {
+        'Pending': 'status-pending',
+        'In Progress': 'status-progress',
+        'Resolved': 'status-resolved'
+      }[found.status] || 'status-pending';
+
+      const priorityClass = {
+        'High': 'status-high',
+        'Medium': 'status-medium',
+        'Low': 'status-low'
+      }[found.priority] || 'status-medium';
+
+      resultArea.innerHTML = `
+        <div class="complaint-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h3 style="font-size:1.3rem;">${found.id}</h3>
+            <span class="status-badge ${statusClass}">${found.status}</span>
+          </div>
+          
+          <p style="margin:12px 0; color:#475569;">${found.description}</p>
+          
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px;">
+            <span class="status-badge ${priorityClass}">Priority: ${found.priority}</span>
+            ${found.assigned_admin ? `<p style="margin-top:10px;font-size:0.9rem;"><i class="fas fa-user-shield"></i> Assigned officer: <strong>${found.assigned_admin.admin_name || found.assigned_admin_name || '—'}</strong>${found.assigned_admin.distance_km!=null ? ' · ' + found.assigned_admin.distance_km + ' km away' : ''}</p>` : ''}
+            <span style="background:#f1f5f9; padding:4px 12px; border-radius:50px; font-size:0.85rem; font-weight:600;">
+              ${found.department}
+            </span>
+          </div>
+
+          ${found.address ? `<p><i class="fas fa-map-marker-alt" style="color:#0ea5e9;"></i> ${found.address}</p>` : ''}
+          
+${found.photo ? `<img src="${found.photo}" class="complaint-photo" alt="Evidence" loading="lazy" />` : ''}
+
+          <div class="timeline">
+            <div class="timeline-item done">
+              <strong>Submitted</strong>
+              <p style="font-size:0.9rem; color:#64748b;">${new Date(found.createdAt).toLocaleString()}</p>
+            </div>
+            <div class="timeline-item ${found.status !== 'Pending' ? 'done' : 'active'}">
+              <strong>Under Review</strong>
+              <p style="font-size:0.9rem; color:#64748b;">Department has received your Snap</p>
+            </div>
+            <div class="timeline-item ${found.status === 'In Progress' || found.status === 'Resolved' ? (found.status === 'Resolved' ? 'done' : 'active') : ''}">
+              <strong>In Progress</strong>
+              <p style="font-size:0.9rem; color:#64748b;">Work has started</p>
+            </div>
+            <div class="timeline-item ${found.status === 'Resolved' ? 'done' : ''}">
+              <strong>Resolved</strong>
+              <p style="font-size:0.9rem; color:#64748b;">Issue fixed</p>
+            </div>
+          </div>
+
+          ${found.status === 'Resolved' ? `
+          <div id="reviewBox" style="margin-top:24px;padding:18px;border-radius:14px;background:#f0fdf4;border:2px solid #86efac;">
+            ${window.NagrikReviews && NagrikReviews.hasReviewed(found.id) ? `
+              <p style="color:#059669;font-weight:700;"><i class="fas fa-check-circle"></i> You already reviewed this Snap. <a href="reviews.html">See all reviews</a></p>
+            ` : `
+              <h4 style="margin-bottom:10px;color:#047857;">⭐ Rate this resolution</h4>
+              <p style="font-size:0.9rem;color:#64748b;margin-bottom:12px;">Your feedback helps improve civic services.</p>
+              <div style="margin-bottom:10px;">
+                <label style="font-weight:700;">Rating</label>
+                <select id="reviewRating" style="margin-left:8px;padding:8px 12px;border-radius:10px;border:2px solid #e2e8f0;font-weight:700;">
+                  <option value="5">5 - Excellent</option>
+                  <option value="4">4 - Good</option>
+                  <option value="3">3 - Average</option>
+                  <option value="2">2 - Poor</option>
+                  <option value="1">1 - Very Poor</option>
+                </select>
+              </div>
+              <textarea id="reviewComment" placeholder="Optional comment..." style="width:100%;min-height:70px;padding:10px;border-radius:12px;border:2px solid #e2e8f0;font-family:inherit;"></textarea>
+              <button type="button" class="btn btn-primary" style="margin-top:12px;" onclick="submitReview('${found.id}', '${(found.department||'').replace(/'/g,"")}','${(found.phone||'').replace(/'/g,"")}')">
+                <i class="fas fa-star"></i> Submit Review
+              </button>
+            `}
+          </div>` : ''}
+
+        </div>
+      `;
+    }
+
+    // Auto search if ID in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('id')) {
+      document.getElementById('searchInput').value = urlParams.get('id');
+      searchComplaint();
+    }
+  
+    async function submitReview(complaintId, department, phone) {
+      const rating = document.getElementById('reviewRating')?.value;
+      const comment = document.getElementById('reviewComment')?.value || '';
+      let name = 'Citizen';
+      try {
+        const u = JSON.parse(localStorage.getItem('nagriksnap_user') || 'null');
+        if (u && u.name) name = u.name;
+      } catch(e) {}
+      if (!window.NagrikReviews) {
+        alert('Review system not loaded');
+        return;
+      }
+      const res = await NagrikReviews.save({
+        complaintId,
+        rating,
+        comment,
+        name,
+        phone,
+        department
+      });
+      if (!res.ok) {
+        alert(res.error || 'Could not save review');
+        return;
+      }
+      alert('Thank you for your review!');
+      // re-run search to refresh UI
+      if (typeof searchComplaint === 'function') searchComplaint();
+      else location.reload();
+    }
+
+  </script>
+</body>
+</html>

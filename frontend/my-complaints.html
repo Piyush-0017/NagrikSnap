@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Complaints – NagrikSnap</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .user-banner {
+      background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+      color: white;
+      padding: 28px 0;
+      margin-bottom: 30px;
+    }
+    .user-banner h2 { font-weight: 800; margin-bottom: 4px; }
+    .complaint-card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 25px rgba(14,165,233,0.1);
+      transition: transform 0.2s;
+    }
+    .complaint-card:hover { transform: translateY(-3px); }
+    .empty-box {
+      text-align: center;
+      padding: 60px 20px;
+      background: white;
+      border-radius: 20px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">📸</span>
+        <span class="logo-text">Nagrik<span>Snap</span></span>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="index.html" data-i18n="nav_home">Home</a>
+        <a href="report.html" data-i18n="nav_report">Report Issue</a>
+        <a href="track.html">Track</a>
+        <a href="my-complaints.html" class="active" data-i18n="nav_my">My Complaints</a>
+        <a href="login.html" data-i18n="nav_login">Login</a>
+      </div>
+<button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <div class="user-banner">
+    <div class="container">
+      <h2 id="welcomeText">My Complaints</h2>
+      <p id="userInfo" style="opacity:0.9;">Loading...</p>
+    </div>
+  </div>
+
+  <div class="container" style="padding-bottom:60px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+      <h3 style="font-weight:800; color:#0f172a;">Your Submitted Snaps</h3>
+      <a href="report.html" class="btn btn-primary">
+        <i class="fas fa-plus"></i> New Complaint
+      </a>
+    </div>
+
+    <div id="complaintsContainer">
+      <div class="empty-box">
+        <i class="fas fa-spinner fa-spin" style="font-size:2rem;"></i>
+        <p style="margin-top:12px;">Loading your complaints...</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:12px 0;">
+          <a href="report.html">Report</a>
+          <a href="track.html">Track</a>
+          <a href="reviews.html"><strong>Reviews</strong></a>
+          <a href="login.html">Login</a>
+        </div>
+      <div class="footer-bottom">
+        <p>© 2026 NagrikSnap • My Complaints</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+<script src="js/chatbotAi.js"></script>
+  <script>
+    // Check citizen login
+    const user = JSON.parse(localStorage.getItem('nagriksnap_user') || 'null');
+    if (!user) {
+      alert('Please login as Citizen first to view your complaints');
+      window.location.href = 'login.html';
+    }
+
+    document.getElementById('welcomeText').textContent = `Hello, ${user.name}! 👋`;
+    document.getElementById('userInfo').textContent = `Phone: ${user.phone}`;
+
+    // Update nav for logged-in citizen
+    const nav = document.getElementById('navLinks');
+    nav.innerHTML = `
+      <a href="index.html" data-i18n="nav_home">Home</a>
+      <a href="report.html" data-i18n="nav_report">Report Issue</a>
+      <a href="track.html">Track</a>
+      <a href="my-complaints.html" class="active" data-i18n="nav_my">My Complaints</a>
+      <a href="#" onclick="citizenLogout(); return false;" style="color:#ef4444; font-weight:700;">Logout</a>
+    `;
+
+    function citizenLogout() {
+      localStorage.removeItem('nagriksnap_user');
+      window.location.href = 'index.html';
+    }
+
+    function loadMyComplaints() {
+      const all = JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
+      const mine = all.filter(c => c.phone === user.phone || c.phone === user.phone.replace(/\D/g, ''));
+
+      const container = document.getElementById('complaintsContainer');
+
+      if (mine.length === 0) {
+        container.innerHTML = `
+          <div class="empty-box">
+            <div style="font-size:3rem; margin-bottom:12px;">📭</div>
+            <h3 style="color:#0f172a; margin-bottom:8px;">No complaints yet</h3>
+            <p>You haven't submitted any Snaps. Start by reporting an issue!</p>
+            <a href="report.html" class="btn btn-primary" style="margin-top:20px;">
+              <i class="fas fa-camera"></i> Report an Issue
+            </a>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = mine.map(c => {
+        const statusClass = {
+          'Pending': 'status-pending',
+          'In Progress': 'status-progress',
+          'Resolved': 'status-resolved'
+        }[c.status] || 'status-pending';
+
+        const priorityClass = {
+          'High': 'status-high',
+          'Medium': 'status-medium',
+          'Low': 'status-low'
+        }[c.priority] || 'status-medium';
+
+        return `
+          <div class="complaint-card">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+              <div>
+                <strong style="font-size:1.15rem; color:#0f172a;">${c.id}</strong>
+                <span class="status-badge ${statusClass}" style="margin-left:10px;">${c.status}</span>
+                <span class="status-badge ${priorityClass}" style="margin-left:6px;">${c.priority}</span>
+                ${c.status === 'Resolved' ? (window.NagrikReviews && NagrikReviews.hasReviewed(c.id)
+                  ? '<a href="reviews.html" style="margin-left:8px;font-size:0.85rem;">Reviewed ✓</a>'
+                  : ('<a href="track.html?id=' + c.id + '" style="margin-left:8px;font-size:0.85rem;color:#059669;font-weight:700;">⭐ Give Review</a>')) : ''}
+              </div>
+              <a href="track.html?id=${c.id}" class="btn btn-secondary" style="padding:8px 16px; font-size:0.85rem;">
+                View Details
+              </a>
+            </div>
+            <p style="color:#475569; margin-bottom:8px;">${(c.description || '').substring(0, 150)}${(c.description || '').length > 150 ? '...' : ''}</p>
+            <p style="font-size:0.85rem; color:#94a3b8;">
+              <i class="fas fa-building"></i> ${c.department || '—'} &nbsp;•&nbsp;
+              <i class="fas fa-calendar"></i> ${c.createdAt ? new Date(c.createdAt).toLocaleString() : ''}
+            </p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    loadMyComplaints();
+  </script>
+</body>
+</html>

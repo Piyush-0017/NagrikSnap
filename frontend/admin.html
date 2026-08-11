@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard – NagrikSnap</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 8px 25px rgba(14,165,233,0.1);
+    }
+    .stat-card h3 {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+    .stat-card p {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    .complaints-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .complaint-row {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+      transition: transform 0.2s;
+    }
+    .complaint-row:hover {
+      transform: translateY(-3px);
+    }
+    .complaint-thumb {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #f1f5f9;
+      flex-shrink: 0;
+    }
+    .complaint-info {
+      flex: 1;
+    }
+    .complaint-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .complaint-actions select {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 2px solid #e2e8f0;
+      font-weight: 600;
+    }
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #94a3b8;
+    }
+    .filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filters select {
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">📸</span>
+        <span class="logo-text">Nagrik<span>Snap</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="nav_home">Home</a>
+        <a href="report.html" data-i18n="nav_report">Report Issue</a>
+        <a href="track.html" data-i18n="nav_track">Track Complaint</a>
+        <a href="admin.html" class="admin-link active" data-i18n="nav_admin">Admin</a>
+        <a href="#" onclick="logout(); return false;" style="color:#ef4444; font-weight:700;"><span data-i18n="logout">Logout</span></a>
+      </div>
+<button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <div class="page-header">
+    <div class="container">
+      <h1>📊 <span data-i18n="admin_title">Admin Dashboard</span></h1>
+      <p><span data-i18n="manage_snaps">Manage all citizen Snaps in one place</span></p>
+    </div>
+  </div>
+
+  <div class="container" style="padding-bottom:60px;">
+    <!-- Stats -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <h3 id="statTotal">0</h3>
+        <p><span data-i18n="total_complaints">Total Complaints</span></p>
+      </div>
+      <div class="stat-card">
+        <h3 id="statPending" style="color:#d97706;">0</h3>
+        <p data-i18n="pending">Pending</p>
+      </div>
+      <div class="stat-card">
+        <h3 id="statProgress" style="color:#2563eb;">0</h3>
+        <p><span data-i18n="progress">In Progress</span></p>
+      </div>
+      <div class="stat-card">
+        <h3 id="statResolved" style="color:#059669;">0</h3>
+        <p data-i18n="resolved_stat">Resolved</p>
+      </div>
+      <div class="stat-card">
+        <h3 id="statHigh" style="color:#dc2626;">0</h3>
+        <p><span data-i18n="high_priority">High Priority</span></p>
+      </div>
+    </div>
+
+<!-- Filters -->
+    <div class="filters">
+      <select id="filterStatus" onchange="renderComplaints()" title="Filter by status">
+        <option value="" data-i18n="all_status">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="In Progress">In Progress</option>
+        <option value="Resolved">Resolved</option>
+      </select>
+      <select id="filterPriority" onchange="renderComplaints()" title="Filter by priority">
+        <option value="" data-i18n="all_priority">All Priority</option>
+        <option value="High">High</option>
+        <option value="Medium">Medium</option>
+        <option value="Low">Low</option>
+      </select>
+      <button class="btn btn-secondary" onclick="clearAllData()" style="padding:10px 18px;">
+        <i class="fas fa-trash"></i> <span data-i18n="clear_demo">Clear Demo Data</span>
+      </button>
+      <button class="btn btn-secondary" onclick="filterMyAssignments()" style="padding:10px 18px;">
+        <i class="fas fa-map-marker-alt"></i> My Nearby Assignments
+      </button>
+    </div>
+
+    <!-- Complaints List -->
+    <div class="complaints-list" id="complaintsList">
+      <div class="empty-state">
+        <i class="fas fa-inbox" style="font-size:3rem; margin-bottom:12px;"></i>
+        <p><span data-i18n="no_complaints_yet">No complaints yet. Citizens will appear here after they Snap.</span></p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:12px 0;">
+          <a href="report.html">Report</a>
+          <a href="track.html">Track</a>
+          <a href="reviews.html"><strong>Reviews</strong></a>
+          <a href="login.html">Login</a>
+        </div>
+      <div class="footer-bottom">
+        <p>© 2026 NagrikSnap • <span data-i18n="admin_panel">Admin Panel</span></p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+<script src="js/chatbotAi.js"></script>
+  <script>
+    // ===== Auth Guard =====
+    const adminSession = localStorage.getItem('nagriksnap_admin');
+    if (!adminSession) {
+      alert('Please login as Admin first');
+      window.location.href = 'login.html';
+    }
+
+    function filterMyAssignments() {
+      let me = null;
+      try { me = JSON.parse(localStorage.getItem('nagriksnap_admin') || 'null'); } catch(e) {}
+      const list = loadComplaints();
+      const mine = me ? list.filter(c => {
+        const a = c.assigned_admin || {};
+        return a.admin_id === me.id || a.admin_name === me.name || c.assigned_admin_id === me.id;
+      }) : list;
+      // temporarily render only mine
+      const box = document.getElementById('complaintsList');
+      if (!box) return;
+      if (!mine.length) {
+        box.innerHTML = '<div class="empty-state"><p>No complaints assigned near you yet. Admins need GPS on signup; complaints need location.</p></div>';
+        return;
+      }
+      if (typeof renderComplaints === 'function') {
+        // force filter by rewriting status filter briefly - simple custom render
+        window._forceList = mine;
+      }
+      box.innerHTML = mine.map(c => {
+        const a = c.assigned_admin || {};
+        return '<div class="complaint-row"><div class="complaint-info"><strong>' + (c.id||c.tracking_id||'') + '</strong> ' +
+          '<span class="status-badge">' + (c.status||'') + '</span><p>' + (c.description||'').slice(0,120) + '</p>' +
+          '<p style="font-size:0.85rem;color:#64748b;">Assigned: ' + (a.admin_name||'—') +
+          (a.distance_km!=null ? ' (' + a.distance_km + ' km)' : '') + '</p></div></div>';
+      }).join('');
+    }
+    function logout() {
+      localStorage.removeItem('nagriksnap_admin');
+      window.location.href = 'login.html';
+    }
+
+    function loadComplaints() {
+      return JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
+    }
+
+    function saveComplaints(data) {
+      localStorage.setItem('nagriksnap_complaints', JSON.stringify(data));
+    }
+
+    function updateStats() {
+      const list = loadComplaints();
+      document.getElementById('statTotal').textContent = list.length;
+      document.getElementById('statPending').textContent = list.filter(c => c.status === 'Pending').length;
+      document.getElementById('statProgress').textContent = list.filter(c => c.status === 'In Progress').length;
+      document.getElementById('statResolved').textContent = list.filter(c => c.status === 'Resolved').length;
+      document.getElementById('statHigh').textContent = list.filter(c => c.priority === 'High').length;
+    }
+
+    function renderComplaints() {
+      const list = loadComplaints();
+      const statusFilter = document.getElementById('filterStatus').value;
+      const priorityFilter = document.getElementById('filterPriority').value;
+
+      let filtered = list;
+      if (statusFilter) filtered = filtered.filter(c => c.status === statusFilter);
+      if (priorityFilter) filtered = filtered.filter(c => c.priority === priorityFilter);
+
+      const container = document.getElementById('complaintsList');
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <i class="fas fa-inbox" style="font-size:3rem; margin-bottom:12px;"></i>
+            <p>No complaints match the filter.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(c => {
+        const statusClass = {
+          'Pending': 'status-pending',
+          'In Progress': 'status-progress',
+          'Resolved': 'status-resolved'
+        }[c.status] || 'status-pending';
+
+        const priorityClass = {
+          'High': 'status-high',
+          'Medium': 'status-medium',
+          'Low': 'status-low'
+        }[c.priority] || 'status-medium';
+
+        return `
+          <div class="complaint-row">
+${c.photo 
+              ? `<img src="${c.photo}" class="complaint-thumb" alt="photo" loading="lazy" />` 
+              : `<div class="complaint-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.8rem;">📷</div>`
+            }
+            <div class="complaint-info">
+              <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:6px;">
+                <strong style="font-size:1.1rem;">${c.id}</strong>
+                <span class="status-badge ${statusClass}">${c.status}</span>
+                <span class="status-badge ${priorityClass}">${c.priority}</span>
+              </div>
+              <p style="color:#475569; margin-bottom:6px;">${c.description.substring(0, 120)}${c.description.length > 120 ? '...' : ''}</p>
+              <p style="font-size:0.85rem; color:#94a3b8;">
+                <i class="fas fa-building"></i> ${c.department} &nbsp;•&nbsp;
+                <i class="fas fa-phone"></i> ${c.phone} &nbsp;•&nbsp;
+                ${new Date(c.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+<div class="complaint-actions">
+              <select onchange="updateStatus('${c.id}', this.value)" title="Update complaint status">
+                <option value="Pending" ${c.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                <option value="In Progress" ${c.status === 'In Progress' ? 'selected' : ''}>In Progress</option>
+                <option value="Resolved" ${c.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+              </select>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateStatus(id, newStatus) {
+      const list = loadComplaints();
+      const idx = list.findIndex(c => c.id === id);
+      if (idx !== -1) {
+        list[idx].status = newStatus;
+        saveComplaints(list);
+        updateStats();
+        renderComplaints();
+        // In real app this would trigger SMS
+        alert(`Status updated to "${newStatus}".\n(In real version, SMS will be sent to citizen)`);
+      }
+    }
+
+    function clearAllData() {
+      if (confirm('Delete all demo complaints?')) {
+        localStorage.removeItem('nagriksnap_complaints');
+        updateStats();
+        renderComplaints();
+      }
+    }
+
+    // Init
+    updateStats();
+    renderComplaints();
+  </script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reviews – NagrikSnap</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .reviews-hero {
+      background: linear-gradient(135deg, #0ea5e9, #14b8a6);
+      color: white;
+      text-align: center;
+      padding: 48px 20px 56px;
+    }
+    .reviews-hero h1 { font-size: 2rem; margin-bottom: 8px; }
+    .avg-box {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,0.2);
+      padding: 10px 20px;
+      border-radius: 999px;
+      margin-top: 12px;
+      font-weight: 800;
+    }
+    .review-card {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 28px rgba(14,165,233,0.1);
+    }
+    .stars { color: #f59e0b; letter-spacing: 2px; font-size: 1.1rem; }
+    .review-meta { font-size: 0.85rem; color: #94a3b8; margin-top: 10px; }
+    .empty-reviews {
+      text-align: center;
+      padding: 60px 20px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">📸</span>
+        <span class="logo-text">Nagrik<span>Snap</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="nav_home">Home</a>
+        <a href="report.html" data-i18n="nav_report">Report Issue</a>
+        <a href="track.html" data-i18n="nav_track">Track Complaint</a>
+        <a href="login.html" data-i18n="nav_login">Login</a>
+        <a href="admin.html" class="admin-link" data-i18n="nav_admin">Admin</a>
+      </div>
+<button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <div class="reviews-hero">
+    <h1>⭐ Citizen Reviews</h1>
+    <p>Feedback after issues are resolved</p>
+    <div class="avg-box" id="avgBox">— / 5</div>
+  </div>
+
+  <div class="container" style="max-width:720px; margin-top:-24px; padding-bottom:60px; position:relative; z-index:2;">
+    <div id="reviewsList"></div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:24px 0;">
+        <div>
+          <span class="logo-text">Nagrik<span>Snap</span></span>
+          <p style="color:#94a3b8;margin-top:6px;">Snap it. Send it. Solved.</p>
+        </div>
+        <div class="footer-links" style="display:flex;gap:18px;flex-wrap:wrap;">
+          <a href="report.html">Report Issue</a>
+          <a href="track.html">Track Complaint</a>
+          <a href="reviews.html"><strong>Reviews</strong></a>
+          <a href="admin.html">Admin</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p data-i18n="footer">© 2026 NagrikSnap • Built for Smart India Hackathon style projects</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+<script src="js/chatbotAi.js"></script>
+  <script>
+    function starString(n) {
+      const r = Math.round(Number(n) || 0);
+      return '★'.repeat(r) + '☆'.repeat(5 - r);
+    }
+
+// Escape text to prevent XSS from user-supplied review content
+    function esc(s) {
+      const d = document.createElement('div');
+      d.textContent = s == null ? '' : String(s);
+      return d.innerHTML;
+    }
+
+    async function render() {
+      const list = window.NagrikReviews
+        ? await NagrikReviews.fetchAll()
+        : JSON.parse(localStorage.getItem('nagriksnap_reviews') || '[]');
+      const box = document.getElementById('avgBox');
+      const container = document.getElementById('reviewsList');
+
+      if (!list.length) {
+        box.textContent = 'No reviews yet';
+container.innerHTML = `
+          <div class="empty-reviews" style="border-radius:16px;box-shadow:0 8px 28px rgba(14,165,233,0.1);">
+            <i class="fas fa-star" style="font-size:2.5rem;margin-bottom:12px;opacity:0.4;"></i>
+            <p>No reviews yet. After a complaint is <strong>Resolved</strong>, citizens can rate the service from Track / My Complaints.</p>
+          </div>`;
+        return;
+      }
+
+      const avg = list.reduce((s, r) => s + Number(r.rating), 0) / list.length;
+      box.innerHTML = `${avg.toFixed(1)} / 5 &nbsp;·&nbsp; ${list.length} review${list.length > 1 ? 's' : ''}`;
+
+      // Department satisfaction stats (from backend /reviews by_department)
+      let deptStats = null;
+      try {
+        const res = await fetch('http://localhost:8000/reviews');
+        if (res.ok) {
+          const data = await res.json();
+          deptStats = data.by_department || null;
+        }
+      } catch (e) { deptStats = null; }
+
+      const deptHtml = (deptStats && Object.keys(deptStats).length)
+        ? `<div style="margin-bottom:24px;">
+             <h3 style="font-weight:800;color:var(--text);margin-bottom:12px;">Satisfaction by Department</h3>
+             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+               ${Object.entries(deptStats).sort((a,b)=>b[1].average-a[1].average).map(([dept, st]) => `
+                 <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:14px;text-align:center;">
+                   <div style="font-weight:800;font-size:1.3rem;color:${st.average >= 4 ? '#059669' : st.average >= 3 ? '#d97706' : '#dc2626'};">${esc(st.average)} / 5</div>
+                   <div style="font-size:0.8rem;color:#94a3b8;margin-top:4px;">${esc(dept)}</div>
+                   <div style="font-size:0.75rem;color:#64748b;margin-top:4px;">${st.count} review${st.count > 1 ? 's' : ''}</div>
+                 </div>`).join('')}
+             </div>
+           </div>`
+        : '';
+
+      container.innerHTML = deptHtml + list.map(r => `
+        <div class="review-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <strong>${esc(r.name || 'Citizen')}</strong>
+            <span class="stars">${starString(r.rating)} (${r.rating}/5)</span>
+          </div>
+<p style="margin-top:10px;color:var(--text);">${esc(r.comment) || '<em style="color:var(--muted);">No written comment</em>'}</p>
+          <div class="review-meta">
+            Tracking ID: <strong>${esc(r.complaintId || r.complaint_id || '—')}</strong>
+            ${r.department ? ' · ' + esc(r.department) : ''}
+            · ${new Date(r.createdAt || r.created_at).toLocaleString()}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', render);
+  </script>
+</body>
+</html>

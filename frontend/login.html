@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login – NagrikSnap</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    .login-wrapper {
+      min-height: 80vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .login-card {
+      background: white;
+      border-radius: 24px;
+      padding: 36px 32px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 50px rgba(14, 165, 233, 0.18);
+    }
+    .login-tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      background: #f1f5f9;
+      padding: 6px;
+      border-radius: 14px;
+    }
+    .login-tab {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #64748b;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .login-tab.active {
+      background: white;
+      color: var(--primary);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    .mode-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+    }
+    .mode-links a {
+      color: #0ea5e9;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .mode-links a:hover { text-decoration: underline; }
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+    .error-msg, .success-msg {
+      padding: 12px 16px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .error-msg { background: #fee2e2; color: #dc2626; }
+    .success-msg { background: #d1fae5; color: #059669; }
+    .otp-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    .otp-row input { flex: 1; }
+    .hint {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      margin-top: 6px;
+    }
+    .dept-select {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 2px solid #e2e8f0;
+      font-family: inherit;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="particles" id="particles"></div>
+
+  <nav class="navbar">
+    <div class="container nav-container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">📸</span>
+        <span class="logo-text">Nagrik<span>Snap</span></span>
+      </a>
+      <div class="nav-links">
+        <a href="index.html" data-i18n="nav_home">Home</a>
+        <a href="report.html" data-i18n="nav_report">Report Issue</a>
+        <a href="track.html" data-i18n="nav_track">Track Complaint</a>
+        <a href="login.html" class="active" data-i18n="nav_login">Login</a>
+        <a href="admin.html" class="admin-link" data-i18n="nav_admin">Admin</a>
+      </div>
+<button class="mobile-menu-btn" id="menuBtn" aria-label="Toggle navigation menu"><i class="fas fa-bars"></i></button>
+    </div>
+  </nav>
+
+  <div class="login-wrapper">
+    <div class="login-card">
+      <h2 style="text-align:center;margin-bottom:8px;" id="cardTitle">Login</h2>
+      <p style="text-align:center;color:#64748b;margin-bottom:20px;font-size:0.9rem;" id="cardSub">Citizen or Admin</p>
+
+      <!-- Role tabs -->
+      <div class="login-tabs">
+        <button type="button" class="login-tab active" id="tabCitizen" onclick="setRole('citizen')">👤 Citizen</button>
+        <button type="button" class="login-tab" id="tabAdmin" onclick="setRole('admin')">🛠️ Admin</button>
+      </div>
+
+      <div class="mode-pills" id="modePills">
+        <button type="button" class="active" id="pillLogin" onclick="setMode('login')">Sign In</button>
+        <button type="button" id="pillSignup" onclick="setMode('signup')">Sign Up</button>
+      </div>
+      <p class="swipe-hint">Swipe left / right to switch Sign In ↔ Sign Up</p>
+
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="success-msg" id="successMsg"></div>
+
+      <!-- ========== LOGIN ========== -->
+      <div class="form-panel active" id="panelLogin">
+        <form onsubmit="doLogin(event)">
+          <div class="form-group">
+            <label>Name / Username</label>
+            <input type="text" id="loginName" placeholder="Your name or username" required />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="loginPass" placeholder="Password" required />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px;">
+            <i class="fas fa-sign-in-alt"></i> Login
+          </button>
+        </form>
+        <div class="mode-links">
+          <a onclick="setMode('signup')">Create account (Sign up)</a>
+          <a onclick="setMode('forgot')">Forgot password?</a>
+        </div>
+      </div>
+
+      <!-- ========== SIGN UP ========== -->
+      <div class="form-panel" id="panelSignup">
+        <form onsubmit="doSignup(event)">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="suName" placeholder="Your full name" required />
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" id="suPhone" placeholder="10-digit mobile" pattern="[0-9]{10}" required />
+          </div>
+          <div class="form-group" id="suDeptGroup" style="display:none;">
+            <label>Department</label>
+            <select id="suDept" class="dept-select">
+              <option value="Public Works / Roads">Public Works / Roads</option>
+              <option value="Sanitation / Waste Management">Sanitation / Waste</option>
+              <option value="Water Supply">Water Supply</option>
+              <option value="Electrical / Street Lights">Electrical / Street Lights</option>
+              <option value="Drainage / Sewerage">Drainage / Sewerage</option>
+              <option value="Parks & Horticulture">Parks & Horticulture</option>
+              <option value="General Administration">General Administration</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label>Your Location (for nearby assignment)</label>
+            <input type="text" id="suAddress" placeholder="Area / landmark / address" />
+            <div class="loc-row">
+<button type="button" class="btn btn-secondary" id="suLocBtn" title="Use GPS to set your location" style="padding:10px 14px;">
+                <i class="fas fa-location-crosshairs"></i> Use GPS
+              </button>
+              <span id="suLocStatus" style="font-size:0.8rem;color:#64748b;">Optional for citizens, recommended for admins</span>
+            </div>
+            <input type="hidden" id="suLat" />
+            <input type="hidden" id="suLng" />
+          </div>
+          <div class="form-group">
+            <label>Create Password</label>
+            <input type="password" id="suPass" placeholder="Min 6 characters" minlength="6" required />
+          </div>
+          <div class="form-group">
+            <label>Confirm Password</label>
+            <input type="password" id="suPass2" placeholder="Re-enter password" minlength="6" required />
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:8px;">
+            <i class="fas fa-user-plus"></i> Sign Up
+          </button>
+        </form>
+        <div class="mode-links">
+          <a onclick="setMode('login')">Already have account? Login</a>
+        </div>
+      </div>
+
+      <!-- ========== FORGOT PASSWORD ========== -->
+      <div class="form-panel" id="panelForgot">
+        <!-- Step 1: phone -->
+        <div id="forgotStep1">
+          <form onsubmit="sendOtp(event)">
+            <div class="form-group">
+              <label>Registered Phone Number</label>
+              <input type="tel" id="fpPhone" placeholder="10-digit mobile" pattern="[0-9]{10}" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">
+              <i class="fas fa-sms"></i> Send OTP
+            </button>
+          </form>
+        </div>
+        <!-- Step 2: OTP + new password -->
+        <div id="forgotStep2" style="display:none;">
+          <form onsubmit="resetPassword(event)">
+            <div class="form-group">
+              <label>Enter OTP</label>
+              <div class="otp-row">
+                <input type="text" id="fpOtp" placeholder="6-digit OTP" maxlength="6" required />
+              </div>
+              <p class="hint" id="otpHint">OTP sent (demo). Check below.</p>
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" id="fpNewPass" placeholder="Min 6 characters" minlength="6" required />
+            </div>
+            <div class="form-group">
+              <label>Confirm New Password</label>
+              <input type="password" id="fpNewPass2" placeholder="Re-enter password" minlength="6" required />
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%;">
+              <i class="fas fa-key"></i> Reset Password
+            </button>
+          </form>
+        </div>
+        <div class="mode-links">
+          <a onclick="setMode('login')">Back to Login</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-links" style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;padding:12px 0;">
+          <a href="report.html">Report</a>
+          <a href="track.html">Track</a>
+          <a href="reviews.html"><strong>Reviews</strong></a>
+          <a href="login.html">Login</a>
+        </div>
+      <div class="footer-bottom">
+        <p data-i18n="footer">© 2026 NagrikSnap • Built for Smart India Hackathon style projects</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/theme.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/main.js"></script>
+<script src="js/chatbotAi.js"></script>
+  <script>
+    // ===== Auth Store (localStorage) — works offline + with existing pages =====
+    const USERS_KEY = 'nagriksnap_accounts'; // all registered users (citizen + admin)
+    let currentRole = 'citizen'; // citizen | admin
+    let currentMode = 'login';   // login | signup | forgot
+    let pendingOtp = null;
+    let pendingPhone = null;
+
+    function getAccounts() {
+      try { return JSON.parse(localStorage.getItem(USERS_KEY) || '[]'); }
+      catch { return []; }
+    }
+    function saveAccounts(list) {
+      localStorage.setItem(USERS_KEY, JSON.stringify(list));
+    }
+    function hashPass(p) {
+      // simple hash for demo (same idea as backend)
+      let h = 0;
+      for (let i = 0; i < p.length; i++) h = ((h << 5) - h) + p.charCodeAt(i) | 0;
+      return 'h' + Math.abs(h).toString(16);
+    }
+
+    // Seed default admin if not present
+    (function seedDefaultAdmin() {
+      const list = getAccounts();
+      if (!list.find(u => u.role === 'admin' && (u.username === 'admin' || u.name === 'admin'))) {
+        list.push({
+          id: 'admin-default',
+          name: 'admin',
+          username: 'admin',
+          phone: '9999999999',
+          department: 'General Administration',
+          passwordHash: hashPass('nagriksnap123'),
+          role: 'admin',
+          createdAt: new Date().toISOString()
+        });
+        saveAccounts(list);
+      }
+    })();
+
+    function showError(msg) {
+      const e = document.getElementById('errorMsg');
+      const s = document.getElementById('successMsg');
+      s.style.display = 'none';
+      e.textContent = msg;
+      e.style.display = 'block';
+    }
+    function showSuccess(msg) {
+      const e = document.getElementById('errorMsg');
+      const s = document.getElementById('successMsg');
+      e.style.display = 'none';
+      s.innerHTML = msg;
+      s.style.display = 'block';
+    }
+    function clearMsgs() {
+      document.getElementById('errorMsg').style.display = 'none';
+      document.getElementById('successMsg').style.display = 'none';
+    }
+
+    function setRole(role) {
+      currentRole = role;
+      document.getElementById('tabCitizen').classList.toggle('active', role === 'citizen');
+      document.getElementById('tabAdmin').classList.toggle('active', role === 'admin');
+      document.getElementById('suDeptGroup').style.display = role === 'admin' ? 'block' : 'none';
+      document.getElementById('cardSub').textContent = role === 'admin' ? 'Admin account' : 'Citizen account';
+      clearMsgs();
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      clearMsgs();
+      document.getElementById('panelLogin').classList.toggle('active', mode === 'login');
+      document.getElementById('panelSignup').classList.toggle('active', mode === 'signup');
+      document.getElementById('panelForgot').classList.toggle('active', mode === 'forgot');
+      const pl = document.getElementById('pillLogin');
+      const ps = document.getElementById('pillSignup');
+      if (pl && ps) {
+        pl.classList.toggle('active', mode === 'login');
+        ps.classList.toggle('active', mode === 'signup');
+        document.getElementById('modePills').style.display = mode === 'forgot' ? 'none' : 'flex';
+      }
+      const hint = document.querySelector('.swipe-hint');
+      if (hint) hint.style.display = mode === 'forgot' ? 'none' : 'block';
+      document.getElementById('cardTitle').textContent =
+        mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Create Account' : 'Forgot Password';
+      // reset forgot steps
+      document.getElementById('forgotStep1').style.display = 'block';
+      document.getElementById('forgotStep2').style.display = 'none';
+      pendingOtp = null;
+      pendingPhone = null;
+    }
+
+    // ===== LOGIN =====
+    function doLogin(e) {
+      e.preventDefault();
+      clearMsgs();
+      const name = document.getElementById('loginName').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      if (!name || !pass) { showError('Enter name and password'); return; }
+
+      const accounts = getAccounts();
+      const passHash = hashPass(pass);
+
+      // Match by name OR username, same role
+      const user = accounts.find(u =>
+        u.role === currentRole &&
+        (u.name.toLowerCase() === name.toLowerCase() ||
+         (u.username && u.username.toLowerCase() === name.toLowerCase()) ||
+         u.phone === name) &&
+        u.passwordHash === passHash
+      );
+
+      // Also allow legacy default admin without seed race
+      if (!user && currentRole === 'admin' && name === 'admin' && pass === 'nagriksnap123') {
+        const adminUser = {
+          id: 'admin-default',
+          name: 'admin',
+          username: 'admin',
+          phone: '9999999999',
+          department: 'General Administration',
+          role: 'admin'
+        };
+        localStorage.setItem('nagriksnap_admin', JSON.stringify(adminUser));
+        showSuccess('Admin login successful! Redirecting...');
+        setTimeout(() => window.location.href = 'admin.html', 800);
+        return;
+      }
+
+      if (!user) {
+        showError('Invalid name or password. Sign up first if you are new.');
+        return;
+      }
+
+      if (user.role === 'admin') {
+        localStorage.setItem('nagriksnap_admin', JSON.stringify({
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          department: user.department || '',
+          role: 'admin'
+        }));
+        // keep old key style compatibility
+        showSuccess('Admin login successful! Redirecting...');
+        setTimeout(() => window.location.href = 'admin.html', 800);
+      } else {
+        localStorage.setItem('nagriksnap_user', JSON.stringify({
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          role: 'citizen'
+        }));
+        showSuccess('Login successful! Redirecting...');
+        setTimeout(() => window.location.href = 'my-complaints.html', 800);
+      }
+    }
+
+    // ===== SIGN UP =====
+    function doSignup(e) {
+      e.preventDefault();
+      clearMsgs();
+      const name = document.getElementById('suName').value.trim();
+      const phone = document.getElementById('suPhone').value.trim();
+      const pass = document.getElementById('suPass').value;
+      const pass2 = document.getElementById('suPass2').value;
+      const dept = document.getElementById('suDept').value;
+
+      if (!/^[0-9]{10}$/.test(phone)) {
+        showError('Enter a valid 10-digit phone number');
+        return;
+      }
+      if (pass.length < 6) {
+        showError('Password must be at least 6 characters');
+        return;
+      }
+      if (pass !== pass2) {
+        showError('Passwords do not match');
+        return;
+      }
+
+      const accounts = getAccounts();
+      // Phone unique per role
+      if (accounts.find(u => u.phone === phone && u.role === currentRole)) {
+        showError('This phone is already registered for ' + currentRole + '. Please login.');
+        return;
+      }
+      // Name unique per role (optional soft check)
+      if (accounts.find(u => u.name.toLowerCase() === name.toLowerCase() && u.role === currentRole)) {
+        showError('This name is already taken for ' + currentRole + '. Try another or login.');
+        return;
+      }
+
+      const newUser = {
+        id: 'u_' + Date.now(),
+        name,
+        username: name.toLowerCase().replace(/\s+/g, ''),
+        phone,
+        passwordHash: hashPass(pass),
+        role: currentRole,
+        department: currentRole === 'admin' ? dept : '',
+        createdAt: new Date().toISOString()
+      };
+      accounts.push(newUser);
+      saveAccounts(accounts);
+
+      // Try backend (optional)
+      try {
+        fetch('http://localhost:8000/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name, phone, password: pass, role: currentRole, department: newUser.department,
+            address: newUser.address, lat: newUser.lat, lng: newUser.lng
+          })
+        }).catch(() => {});
+      } catch (err) {}
+
+      showSuccess('Account created! You can login now.');
+      setTimeout(() => {
+        setMode('login');
+        document.getElementById('loginName').value = name;
+      }, 1000);
+    }
+
+    // ===== FORGOT → Real SMS OTP (Fast2SMS via backend) + local fallback =====
+    const API_BASE = 'http://localhost:8000';
+
+    async function sendOtp(e) {
+      e.preventDefault();
+      clearMsgs();
+      const phone = document.getElementById('fpPhone').value.trim();
+      if (!/^[0-9]{10}$/.test(phone)) {
+        showError('Enter a valid 10-digit phone number');
+        return;
+      }
+
+      const accounts = getAccounts();
+      const user = accounts.find(u => u.phone === phone && u.role === currentRole);
+      if (!user) {
+        showError('No ' + currentRole + ' account found with this phone. Sign up first.');
+        return;
+      }
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...'; }
+
+      let usedBackend = false;
+      try {
+        const res = await fetch(API_BASE + '/auth/otp/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, role: currentRole })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          usedBackend = true;
+          pendingPhone = phone;
+          pendingOtp = data.demo_otp || null; // only set if server returned demo_otp
+          document.getElementById('forgotStep1').style.display = 'none';
+          document.getElementById('forgotStep2').style.display = 'block';
+          if (data.sms_sent) {
+            document.getElementById('otpHint').textContent =
+              'OTP sent by SMS to +91 ' + phone + '. Valid 5 minutes.';
+            showSuccess('OTP sent to your phone via SMS.');
+          } else if (data.demo_otp) {
+            pendingOtp = data.demo_otp;
+            localStorage.setItem('nagriksnap_otp_' + phone, data.demo_otp);
+            document.getElementById('otpHint').textContent =
+              'Demo OTP (SMS key missing): ' + data.demo_otp;
+            showSuccess('Backend running in demo SMS mode. Use OTP shown below.');
+          } else {
+            document.getElementById('otpHint').textContent =
+              'OTP sent. Check your SMS. Valid 5 minutes.';
+            showSuccess(data.message || 'OTP sent.');
+          }
+        }
+      } catch (err) {
+        console.log('Backend OTP unavailable, local demo OTP', err);
+      }
+
+      if (!usedBackend) {
+        // Local fallback for when backend is offline
+        pendingOtp = String(Math.floor(100000 + Math.random() * 900000));
+        pendingPhone = phone;
+        localStorage.setItem('nagriksnap_otp_' + phone, pendingOtp);
+        document.getElementById('forgotStep1').style.display = 'none';
+        document.getElementById('forgotStep2').style.display = 'block';
+        document.getElementById('otpHint').textContent =
+          'Backend offline — Demo OTP: ' + pendingOtp;
+        showSuccess('Using local demo OTP (start backend + set FAST2SMS_API_KEY for real SMS).');
+      }
+
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-sms"></i> Send OTP'; }
+    }
+
+    async function resetPassword(e) {
+      e.preventDefault();
+      clearMsgs();
+      const otp = document.getElementById('fpOtp').value.trim();
+      const p1 = document.getElementById('fpNewPass').value;
+      const p2 = document.getElementById('fpNewPass2').value;
+
+      if (!pendingPhone) {
+        showError('Please request OTP first');
+        return;
+      }
+      if (p1.length < 6) {
+        showError('Password must be at least 6 characters');
+        return;
+      }
+      if (p1 !== p2) {
+        showError('Passwords do not match');
+        return;
+      }
+
+      let verifiedByBackend = false;
+      try {
+        const res = await fetch(API_BASE + '/auth/otp/verify-reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: pendingPhone,
+            otp,
+            role: currentRole,
+            new_password: p1
+          })
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.success) {
+          verifiedByBackend = true;
+        } else if (res.status === 400 && data.detail) {
+          // If backend rejected OTP, stop (unless we only have local otp)
+          if (!pendingOtp) {
+            showError(typeof data.detail === 'string' ? data.detail : 'Invalid OTP');
+            return;
+          }
+        }
+      } catch (err) {
+        console.log('Backend verify unavailable', err);
+      }
+
+      // Local verify if backend didn't confirm
+      if (!verifiedByBackend) {
+        const localOtp = pendingOtp || localStorage.getItem('nagriksnap_otp_' + pendingPhone);
+        if (!localOtp || otp !== localOtp) {
+          showError('Invalid OTP');
+          return;
+        }
+      }
+
+      // Always update frontend account store so login works offline
+      const accounts = getAccounts();
+      const idx = accounts.findIndex(u => u.phone === pendingPhone && u.role === currentRole);
+      if (idx < 0) {
+        showError('Account not found');
+        return;
+      }
+      accounts[idx].passwordHash = hashPass(p1);
+      accounts[idx].updatedAt = new Date().toISOString();
+      saveAccounts(accounts);
+      localStorage.removeItem('nagriksnap_otp_' + pendingPhone);
+      pendingOtp = null;
+      pendingPhone = null;
+
+      showSuccess('Password updated! You can login now.');
+      setTimeout(() => setMode('login'), 1200);
+    }
+
+    
+    // Location capture on signup
+    document.getElementById('suLocBtn')?.addEventListener('click', () => {
+      const st = document.getElementById('suLocStatus');
+      if (!navigator.geolocation) {
+        if (st) st.textContent = 'Geolocation not supported';
+        return;
+      }
+      if (st) st.textContent = 'Getting location...';
+      navigator.geolocation.getCurrentPosition(pos => {
+        document.getElementById('suLat').value = pos.coords.latitude;
+        document.getElementById('suLng').value = pos.coords.longitude;
+        if (st) st.textContent = '📍 Saved: ' + pos.coords.latitude.toFixed(4) + ', ' + pos.coords.longitude.toFixed(4);
+      }, () => { if (st) st.textContent = 'Unable to get GPS. Type address instead.'; });
+    });
+
+    // Swipe left/right between Sign In and Sign Up
+    (function enableSwipe() {
+      const card = document.querySelector('.login-card');
+      if (!card) return;
+      let startX = 0, startY = 0;
+      card.addEventListener('touchstart', e => {
+        startX = e.changedTouches[0].clientX;
+        startY = e.changedTouches[0].clientY;
+      }, { passive: true });
+      card.addEventListener('touchend', e => {
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+        if (currentMode === 'forgot') return;
+        if (dx < 0) setMode('signup');  // swipe left → Sign Up
+        else setMode('login');          // swipe right → Sign In
+      }, { passive: true });
+      // mouse drag support
+      let down = false, mx = 0;
+      card.addEventListener('mousedown', e => { down = true; mx = e.clientX; });
+      window.addEventListener('mouseup', e => {
+        if (!down) return;
+        down = false;
+        const dx = e.clientX - mx;
+        if (Math.abs(dx) < 80 || currentMode === 'forgot') return;
+        if (dx < 0) setMode('signup');
+        else setMode('login');
+      });
+    })();
+
+    // If already logged in, show hint
+    document.addEventListener('DOMContentLoaded', () => {
+      if (localStorage.getItem('nagriksnap_admin')) {
+        showSuccess('Admin already logged in. <a href="admin.html">Go to Admin Dashboard</a> or logout first.');
+      } else if (localStorage.getItem('nagriksnap_user')) {
+        try {
+          const u = JSON.parse(localStorage.getItem('nagriksnap_user'));
+          showSuccess('Logged in as ' + (u.name || 'Citizen') + '. <a href="my-complaints.html">My Complaints</a>');
+        } catch(e) {}
+      }
+    });
+  </script>
+</body>
+</html>
