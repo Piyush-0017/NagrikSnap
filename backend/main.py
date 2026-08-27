@@ -213,6 +213,27 @@ def rate_limit(key: str, limit: int, window_seconds: int) -> bool:
 
 
 # ===== Fast2SMS =====
+def send_email(to: str, subject: str, html: str) -> dict:
+    api_key = os.getenv("RESEND_API_KEY")
+    sender = os.getenv("RESEND_FROM", "NagrikSnap <onboarding@resend.dev>")
+    if not to:
+        return {"success": False, "message": "Email not provided"}
+    if not api_key:
+        print("[EMAIL] RESEND_API_KEY not configured. Email skipped (demo mode).")
+        return {"success": False, "message": "Email provider not configured", "demo": True}
+    try:
+        response = requests.post("https://api.resend.com/emails", headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}, json={"from": sender, "to": [to], "subject": subject, "html": html}, timeout=15)
+        response.raise_for_status()
+        return {"success": True, "id": response.json().get("id")}
+    except Exception as e:
+        print(f"[EMAIL] Error: {e}")
+        return {"success": False, "message": "Email delivery failed"}
+
+
+def store_message(phone, subject, body, complaint_id=None, email="", channel="inbox"):
+    db.add_message({"id": str(uuid.uuid4()), "recipient_phone": phone, "recipient_email": email, "complaint_id": complaint_id, "subject": subject, "body": body, "channel": channel, "created_at": datetime.now().isoformat()})
+
+
 def send_sms(phone: str, message: str) -> dict:
     api_key = os.getenv("FAST2SMS_API_KEY")
     if not api_key:
@@ -427,6 +448,7 @@ def root():
 async def create_complaint(
     description: str = Form(...),
     phone: str = Form(...),
+    email: Optional[str] = Form(None),
     address: Optional[str] = Form(None),
     lat: Optional[float] = Form(None),
     lng: Optional[float] = Form(None),
@@ -465,7 +487,8 @@ async def create_complaint(
     complaint = {
         "id": tracking_id,
         "description": description,
-        "phone": phone,
+        "phone": phone_clean,
+        "email": (email or "").strip(),
         "address": address,
         "lat": lat,
         "lng": lng,
@@ -486,11 +509,18 @@ async def create_complaint(
         f"Dept: {classification['department']}. "
         f"Priority: {classification['priority']}."
     )
-    sms_result = send_sms(phone, sms_message)
+    sms_result = send_sms(phone_clean, sms_message)
+    inbox_body = f"Your complaint {tracking_id} was registered successfully. Department: {classification['department']}. Priority: {classification['priority']}."
+    store_message(phone_clean, "Complaint registered", inbox_body, tracking_id, email or "")
+    email_result = send_email(email or "", f"NagrikSnap complaint {tracking_id} registered", f"<p>{inbox_body}</p>")
+    admin_email = os.getenv("ADMIN_NOTIFICATION_EMAIL")
+    admin_result = send_email(admin_email or "", f"New complaint: {tracking_id}", f"<p>{description}</p><p>Phone: {phone_clean}</p>")
 
     return {
         "success": True,
         "tracking_id": tracking_id,
+        "email_sent": email_result.get("success", False),
+        "admin_email_sent": admin_result.get("success", False),
         "department": classification["department"],
         "priority": classification["priority"],
         "sms_sent": sms_result.get("success", False),
@@ -595,6 +625,21 @@ def update_status(tracking_id: str, data: StatusUpdate, user=Depends(require_adm
         "message": f"Status updated to {data.status}",
         "sms_sent": sms_result.get("success", False),
     }
+
+
+@app.get("/messages")
+def get_messages(user=Depends(verify_token), unread_only: bool = False):
+    if user["role"] != "citizen":
+        raise HTTPException(status_code=403, detail="Citizen access required")
+    return {"messages": db.get_messages(user["username"], unread_only)}
+
+
+@app.patch("/messages/{message_id}/read")
+def read_message(message_id: str, user=Depends(verify_token)):
+    if user["role"] != "citizen":
+        raise HTTPException(status_code=403, detail="Citizen access required")
+    db.mark_message_read(message_id, user["username"])
+    return {"success": True}
 
 
 @app.get("/uploads/{filename}")

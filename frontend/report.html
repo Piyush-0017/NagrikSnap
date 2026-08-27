@@ -105,6 +105,10 @@
           <label data-i18n="label_phone2">4. Mobile Number (for SMS updates)</label>
           <input type="tel" id="phone" data-i18n-placeholder="phone_ph" placeholder="10-digit mobile number" pattern="[0-9]{10}" required />
         </div>
+        <div class="form-group">
+          <label for="email">5. Email (for updates)</label>
+          <input type="email" id="email" placeholder="you@example.com" autocomplete="email" />
+        </div>
 
         <div class="ai-result" id="aiResult">
           <h4 style="margin-bottom:10px;color:#0284c7;">🤖 <span data-i18n="ai_analysis">AI Analysis</span></h4>
@@ -245,6 +249,8 @@
         const formData = new FormData();
         formData.append('description', description);
         formData.append('phone', phone);
+        const email = document.getElementById('email').value.trim();
+        if (email) formData.append('email', email);
         if (address) formData.append('address', address);
         if (lat) formData.append('lat', lat);
         if (lng) formData.append('lng', lng);
