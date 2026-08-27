@@ -70,7 +70,20 @@ def init_db():
                     created_at         TEXT,
                     assigned_admin     TEXT,
                     assigned_admin_id  TEXT,
-                    assigned_admin_name TEXT
+                    assigned_admin_name TEXT,
+                    email              TEXT DEFAULT ''
+                );
+
+                CREATE TABLE IF NOT EXISTS messages (
+                    id            TEXT PRIMARY KEY,
+                    recipient_phone TEXT NOT NULL,
+                    recipient_email TEXT DEFAULT '',
+                    complaint_id  TEXT,
+                    subject       TEXT NOT NULL,
+                    body          TEXT NOT NULL,
+                    channel       TEXT NOT NULL DEFAULT 'inbox',
+                    is_read       INTEGER NOT NULL DEFAULT 0,
+                    created_at    TEXT NOT NULL
                 );
 
                 CREATE TABLE IF NOT EXISTS reviews (
@@ -91,7 +104,12 @@ def init_db():
                 CREATE INDEX IF NOT EXISTS idx_reviews_complaint  ON reviews(complaint_id);
                 """
             )
-            conn.commit()
+            # Forward-compatible migration for existing SQLite databases.
+            try:
+                conn.execute("ALTER TABLE complaints ADD COLUMN email TEXT DEFAULT ''")
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
         finally:
             conn.close()
 
@@ -112,12 +130,13 @@ def _migrate_json():
                         for c in data:
                             conn.execute(
                                 "INSERT OR IGNORE INTO complaints "
-                                "(id, description, phone, address, lat, lng, department, priority, status, photo, created_at, assigned_admin, assigned_admin_id, assigned_admin_name) "
-                                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                                "(id, description, phone, email, address, lat, lng, department, priority, status, photo, created_at, assigned_admin, assigned_admin_id, assigned_admin_name) "
+                                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                                 (
                                     c.get("id") or c.get("tracking_id"),
                                     c.get("description", ""),
                                     str(c.get("phone", "")),
+                                    c.get("email", ""),
                                     c.get("address"),
                                     c.get("lat"),
                                     c.get("lng"),
@@ -347,12 +366,13 @@ def add_complaint(c: dict):
         try:
             conn.execute(
                 "INSERT INTO complaints "
-                "(id, description, phone, address, lat, lng, department, priority, status, photo, created_at, assigned_admin, assigned_admin_id, assigned_admin_name) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "(id, description, phone, email, address, lat, lng, department, priority, status, photo, created_at, assigned_admin, assigned_admin_id, assigned_admin_name) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     c.get("id"),
                     c.get("description", ""),
                     str(c.get("phone", "")),
+                    c.get("email", ""),
                     c.get("address"),
                     c.get("lat"),
                     c.get("lng"),
@@ -407,6 +427,43 @@ def analytics():
                 "resolved_rate": round((resolved / total) * 100, 2) if total else 0,
                 "high_unresolved": high_unresolved,
             }
+        finally:
+            conn.close()
+
+
+# ===================== MESSAGES =====================
+def add_message(message: dict):
+    with _lock:
+        conn = _connect()
+        try:
+            conn.execute("INSERT INTO messages (id, recipient_phone, recipient_email, complaint_id, subject, body, channel, is_read, created_at) VALUES (?,?,?,?,?,?,?,?,?)", (
+                message.get("id"), str(message.get("recipient_phone", "")), message.get("recipient_email", ""), message.get("complaint_id"), message.get("subject", ""), message.get("body", ""), message.get("channel", "inbox"), int(message.get("is_read", 0)), message.get("created_at")
+            ))
+            conn.commit()
+        finally:
+            conn.close()
+
+
+def get_messages(phone: str, unread_only=False):
+    with _lock:
+        conn = _connect()
+        try:
+            sql = "SELECT * FROM messages WHERE recipient_phone=?"
+            params = [phone]
+            if unread_only:
+                sql += " AND is_read=0"
+            rows = conn.execute(sql + " ORDER BY created_at DESC", params).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            conn.close()
+
+
+def mark_message_read(message_id: str, phone: str):
+    with _lock:
+        conn = _connect()
+        try:
+            conn.execute("UPDATE messages SET is_read=1 WHERE id=? AND recipient_phone=?", (message_id, phone))
+            conn.commit()
         finally:
             conn.close()
 
