@@ -125,14 +125,28 @@
   <script src="js/main.js"></script>
 <script src="js/chatbotAi.js"></script>
   <script>
-    function searchComplaint() {
-      const query = document.getElementById('searchInput').value.trim().toUpperCase();
+    async function searchComplaint() {
+      const rawQuery = document.getElementById('searchInput').value.trim();
+      const query = rawQuery.toUpperCase();
       if (!query) return;
 
-      const complaints = JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
-      const found = complaints.find(c => 
-        c.id === query || c.phone === query || c.phone === query.replace(/\D/g, '')
-      );
+      const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      let found = null;
+      try {
+        const res = await fetch(`http://localhost:8000/complaints/${encodeURIComponent(rawQuery)}`);
+        if (res.ok) found = await res.json();
+      } catch (error) {
+        console.log('[v0] Tracking backend unavailable, using local fallback', error);
+      }
+      if (!found) {
+        const complaints = JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
+        found = complaints.find(c =>
+          c.id === query || c.phone === query || c.phone === query.replace(/\D/g, '')
+        );
+      }
+      if (found) {
+        found = {...found, id: escapeHtml(found.id), description: escapeHtml(found.description), department: escapeHtml(found.department), address: escapeHtml(found.address), status: escapeHtml(found.status), priority: escapeHtml(found.priority)};
+      }
 
       const resultArea = document.getElementById('resultArea');
       const notFound = document.getElementById('notFound');
