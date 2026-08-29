@@ -120,10 +120,21 @@
       window.location.href = 'index.html';
     }
 
-    function loadMyComplaints() {
-      const all = JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
-      const mine = all.filter(c => c.phone === user.phone || c.phone === user.phone.replace(/\D/g, ''));
+    async function loadMyComplaints() {
+      let mine = [];
+      try {
+        const res = await fetch(`http://localhost:8000/complaints/by-phone/${encodeURIComponent(user.phone)}`);
+        if (res.ok) mine = await res.json();
+      } catch (error) {
+        console.log('[v0] Citizen complaints backend unavailable, using local fallback', error);
+      }
+      if (!mine.length) {
+        const all = JSON.parse(localStorage.getItem('nagriksnap_complaints') || '[]');
+        mine = all.filter(c => c.phone === user.phone || c.phone === user.phone.replace(/\D/g, ''));
+      }
 
+      const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+      mine = mine.map(c => ({...c, id: escapeHtml(c.id), description: escapeHtml(c.description), department: escapeHtml(c.department), status: escapeHtml(c.status), priority: escapeHtml(c.priority)}));
       const container = document.getElementById('complaintsContainer');
 
       if (mine.length === 0) {

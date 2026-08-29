@@ -116,6 +116,7 @@
           <p><strong data-i18n="priority">Priority</strong>: <span id="aiPriority" class="status-badge">—</span></p>
         </div>
 
+        <p id="submitError" role="alert" aria-live="polite" style="display:none;color:#b91c1c;margin-top:12px;"></p>
         <button type="submit" class="btn btn-primary btn-large" style="width:100%;margin-top:20px;">
           <i class="fas fa-paper-plane"></i> <span data-i18n="submit">Submit Snap</span>
         </button>
@@ -241,6 +242,9 @@
       const submitBtn = e.target.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
       submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ...';
+      const submitError = document.getElementById('submitError');
+      submitError.style.display = 'none';
+      submitError.textContent = '';
 
       let trackingId = null;
       let classification = window.NagrikSnap ? NagrikSnap.classifyComplaint(description) : { department: 'General', priority: 'Medium' };
@@ -261,7 +265,9 @@
           trackingId = data.tracking_id;
           classification = { department: data.department, priority: data.priority };
         }
-      } catch (err) { console.log('Backend not available, local mode'); }
+      } catch (err) {
+        console.log('[v0] Report backend unavailable, using local fallback', err);
+      }
 
       if (!trackingId) {
         trackingId = window.NagrikSnap ? NagrikSnap.generateTrackingId() : ('NS' + Date.now().toString().slice(-8));

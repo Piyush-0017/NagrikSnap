@@ -5,6 +5,7 @@ with real Fast2SMS + Login System
 """
 
 from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Header, Depends
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -36,10 +37,17 @@ try:
 except ImportError:
     pass
 
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    db.init_db()
+    yield
+
+
 app = FastAPI(
     title="NagrikSnap API",
     description="AI-Powered Citizen Grievance System with SMS + Auth",
-    version="1.2"
+    version="1.2",
+    lifespan=lifespan,
 )
 
 # Configurable CORS origins (default: local dev frontend)
@@ -422,7 +430,28 @@ def citizen_login(data: CitizenRegister):
 
 @app.get("/auth/me")
 def get_me(user=Depends(verify_token)):
-    return user
+    persisted = None
+    if user.get("role") == "admin":
+        persisted = next(
+            (item for item in load_users()
+             if item.get("role") == "admin"
+             and (item.get("name") == user.get("username")
+                  or item.get("username") == user.get("username"))),
+            None,
+        )
+    else:
+        persisted = db.get_user_by_phone(user.get("username"), "citizen")
+    if not persisted:
+        return {"username": user.get("username"), "role": user.get("role")}
+    return {
+        "id": persisted.get("id"),
+        "username": persisted.get("username") or persisted.get("name") or persisted.get("phone"),
+        "name": persisted.get("name"),
+        "phone": persisted.get("phone"),
+        "role": persisted.get("role"),
+        "department": persisted.get("department") or "",
+        "address": persisted.get("address") or "",
+    }
 
 
 @app.post("/auth/logout")
@@ -592,6 +621,13 @@ def analytics(user=Depends(require_admin)):
         "resolved_rate": round((bucket("status").get("Resolved", 0) / total) * 100, 2) if total else 0,
         "high_unresolved": sum(1 for c in db if c.get("priority") == "High" and c.get("status") != "Resolved"),
     }
+
+
+@app.get("/complaints/by-phone/{phone}")
+def get_complaints_by_phone(phone: str):
+    """Public citizen lookup by normalized phone number."""
+    normalized = "".join(filter(str.isdigit, phone))[-10:]
+    return [c for c in load_db() if "".join(filter(str.isdigit, str(c.get("phone", "")))[-10:]) == normalized]
 
 
 @app.get("/complaints/{tracking_id}")
@@ -904,7 +940,7 @@ class ChatRequest(BaseModel):
 
 
 CHAT_FAQ = [
-    (["report", "how to report", "शिकायत", "रिपोर्ट", "snap", "दर्ज"],
+    (["report", "how to report", "शिकायत", "रिपो��्ट", "snap", "दर्ज"],
      "To report: open Report Issue → photo → describe (Hindi/English) → location → Submit. You get Tracking ID + SMS.",
      "समस्या रिपोर्ट: Report Issue खोलें → फोटो → वर्णन → स्थान → Submit। Tracking ID + SMS मिलेगा।"),
     (["track", "tracking", "status", "ट्रैक", "id"],
@@ -1025,9 +1061,6 @@ def test_sms(phone: str = Form(...), message: str = Form("NagrikSnap test SMS"),
     result = send_sms(phone, message)
     return result
 
-
-# Ensure the database is initialized (tables + migration) on startup.
-db.init_db()
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
